@@ -4,14 +4,13 @@ const fs = require('fs');
 const path = require('path');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb' }));
 app.use(express.static(__dirname));
 
-// Paths
 const dataDir = path.join(__dirname, 'data');
 const usersPath = path.join(dataDir, 'users.json');
 const reportsPath = path.join(dataDir, 'reports.json');
@@ -57,12 +56,10 @@ function writeReports(reports) {
     }
 }
 
-// Ensure data directory exists
 if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
 }
 
-// Initialize default admin
 function initializeDefaults() {
     let users = readUsers();
     if (users.length === 0) {
@@ -151,6 +148,26 @@ app.put('/api/users/:id/grade', (req, res) => {
     }
 });
 
+app.put('/api/users/:id/password', (req, res) => {
+    try {
+        const { id } = req.params;
+        const { password } = req.body;
+        const users = readUsers();
+        
+        const user = users.find(u => u.id === parseInt(id));
+        if (!user) {
+            return res.status(404).json({ error: 'Utilisateur non trouvé' });
+        }
+        
+        user.password = password;
+        writeUsers(users);
+        
+        res.json({ success: true, user });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.delete('/api/users/:id', (req, res) => {
     try {
         const { id } = req.params;
@@ -216,6 +233,7 @@ app.delete('/api/reports/:id', (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 Serveur démarré sur http://localhost:${PORT}`);
+    console.log(`\n🚀 Serveur Sitenrp démarré sur http://localhost:${PORT}`);
     console.log(`📁 Dossier data: ${dataDir}`);
+    console.log(`👤 Admin: admin / admin123\n`);
 });
