@@ -1,9 +1,12 @@
 // Gestion des Grades
 let grades = JSON.parse(localStorage.getItem('grades')) || [
     { id: 1, name: 'Stratege en test', rank: 1, permissions: ['read', 'write_report'] },
-    { id: 2, name: 'Stratege', rank: 2, permissions: ['read', 'write_report', 'moderate'] },
-    { id: 3, name: 'Jonin', rank: 3, permissions: ['read', 'write_report', 'moderate', 'manage_users'] },
-    { id: 4, name: 'Kage', rank: 4, permissions: ['read', 'write_report', 'moderate', 'manage_users', 'admin'] },
+    { id: 2, name: 'Stratege', rank: 1, permissions: ['read', 'write_report'] },
+    { id: 3, name: 'Stratege confirmé', rank: 1, permissions: ['read', 'write_report'] },
+    { id: 4, name: 'Stratege en chef', rank: 2, permissions: ['read', 'write_report', 'moderate'] },
+    { id: 6, name: 'Co-gerant', rank: 3, permissions: ['read', 'write_report', 'moderate', 'manage_users'] },
+    { id: 7, name: 'Gerant', rank: 4, permissions: ['read', 'write_report', 'moderate', 'manage_users', 'admin'] },
+    { id: 8, name: 'Dirigeant', rank: 4, permissions: ['read', 'write_report', 'moderate', 'manage_users', 'admin'] },
     // Administrateur: accès complet et toutes les permissions
     { id: 5, name: 'Administrateur', rank: 5, permissions: ['read', 'write_report', 'moderate', 'manage_users', 'admin'] }
 ];
