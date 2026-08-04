@@ -3,7 +3,9 @@ let grades = JSON.parse(localStorage.getItem('grades')) || [
     { id: 1, name: 'Genin', rank: 1, permissions: ['read', 'write_report'] },
     { id: 2, name: 'Chunin', rank: 2, permissions: ['read', 'write_report', 'moderate'] },
     { id: 3, name: 'Jonin', rank: 3, permissions: ['read', 'write_report', 'moderate', 'manage_users'] },
-    { id: 4, name: 'Kage', rank: 4, permissions: ['read', 'write_report', 'moderate', 'manage_users', 'admin'] }
+    { id: 4, name: 'Kage', rank: 4, permissions: ['read', 'write_report', 'moderate', 'manage_users', 'admin'] },
+    // Administrateur: accès complet et toutes les permissions
+    { id: 5, name: 'Administrateur', rank: 5, permissions: ['read', 'write_report', 'moderate', 'manage_users', 'admin'] }
 ];
 
 function saveGrades() {
@@ -42,6 +44,10 @@ function deleteGrade(id) {
 
 function getGrade(id) {
     return grades.find(g => g.id === id);
+}
+
+function getGradeByName(name) {
+    return grades.find(g => g.name === name);
 }
 
 function getAllGrades() {
