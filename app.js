@@ -81,7 +81,6 @@ function register() {
     
     users.push(newUser);
     saveUsers(users);
-    downloadJSON('users', users);
     
     errorDiv.style.color = '#51cf66';
     errorDiv.textContent = 'Inscription réussie! Connectez-vous.';
@@ -181,8 +180,6 @@ function submitReport(event) {
         reader.onload = (e) => {
             report.image = e.target.result;
             saveReport(report);
-            const reports = loadAllReports();
-            downloadJSON('reports', reports);
             loadReports();
             hideReportForm();
             alert('Rapport créé avec succès!');
@@ -191,8 +188,6 @@ function submitReport(event) {
         reader.readAsDataURL(imageFile);
     } else {
         saveReport(report);
-        const reports = loadAllReports();
-        downloadJSON('reports', reports);
         loadReports();
         hideReportForm();
         alert('Rapport créé avec succès!');
@@ -253,7 +248,6 @@ function deleteReport(reportId) {
         const reports = loadAllReports();
         const filtered = reports.filter(r => r.id !== reportId);
         saveAllReports(filtered);
-        downloadJSON('reports', filtered);
         loadReports();
         alert('Rapport supprimé!');
         loadStats();
@@ -334,7 +328,6 @@ function editUserPassword(userId) {
         if (user) {
             user.password = newPassword;
             saveUsers(users);
-            downloadJSON('users', users);
             alert('Mot de passe modifié avec succès!');
             loadAdmin();
         }
@@ -347,7 +340,6 @@ function changeGrade(userId, newGrade) {
     if (user) {
         user.grade = newGrade;
         saveUsers(users);
-        downloadJSON('users', users);
         
         if (user.id === currentUser.id) {
             currentUser.grade = newGrade;
@@ -370,7 +362,6 @@ function deleteUser(userId) {
         const users = loadUsers();
         const filtered = users.filter(u => u.id !== userId);
         saveUsers(filtered);
-        downloadJSON('users', filtered);
         alert('Utilisateur supprimé!');
         loadAdmin();
     }
@@ -388,7 +379,6 @@ function loadUsers() {
             createdAt: new Date().toISOString()
         };
         saveUsers([defaultAdmin]);
-        downloadJSON('users', [defaultAdmin]);
         return [defaultAdmin];
     }
     return JSON.parse(stored);
@@ -429,6 +419,22 @@ function loadUserFromStorage() {
     }
 }
 
+// Admin export function - manual download only
+function exportDataAsAdmin() {
+    if (currentUser.grade !== 'Administrateur') {
+        alert('Accès refusé!');
+        return;
+    }
+    
+    const users = loadUsers();
+    const reports = loadAllReports();
+    
+    downloadJSON('users', users);
+    downloadJSON('reports', reports);
+    
+    alert('Fichiers JSON téléchargés avec succès!');
+}
+
 // Download JSON files function
 function downloadJSON(filename, data) {
     const jsonString = JSON.stringify(data, null, 2);
@@ -441,13 +447,4 @@ function downloadJSON(filename, data) {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-    console.log(`✅ ${filename}.json téléchargé dans le dossier Téléchargements`);
 }
-
-// Auto-download files on page load
-window.addEventListener('load', () => {
-    setTimeout(() => {
-        downloadJSON('users', loadUsers());
-        downloadJSON('reports', loadAllReports());
-    }, 500);
-});
