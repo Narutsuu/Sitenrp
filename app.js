@@ -71,11 +71,14 @@ function register() {
         return;
     }
     
+    // Default grade taken from grades.js if available
+    const defaultGrade = (typeof getAllGrades === 'function' && getAllGrades().length) ? getAllGrades()[0].name : 'Recruté';
+
     const newUser = {
         id: Date.now(),
         username,
         password,
-        grade: 'Recruté',
+        grade: defaultGrade,
         createdAt: new Date().toISOString()
     };
     
@@ -113,11 +116,13 @@ function showMainApp() {
     loadReports();
     
     const adminBtn = document.getElementById('admin-btn');
-    if (currentUser.grade === 'Administrateur') {
-        adminBtn.style.display = 'inline-block';
-    } else {
-        adminBtn.style.display = 'none';
+    // show admin button if current user has 'admin' permission on their grade
+    let isAdmin = false;
+    if (currentUser && typeof getGradeByName === 'function') {
+        const g = getGradeByName(currentUser.grade);
+        isAdmin = !!(g && g.permissions && g.permissions.includes('admin'));
     }
+    if (adminBtn) adminBtn.style.display = isAdmin ? 'inline-block' : 'none';
 }
 
 function showAuthPage() {
@@ -200,8 +205,12 @@ function loadReports() {
     const reportsList = document.getElementById('reports-list');
     reportsList.innerHTML = '';
     
+    const currentIsAdmin = (currentUser && typeof getGradeByName === 'function') ?
+        !!(getGradeByName(currentUser.grade) && getGradeByName(currentUser.grade).permissions.includes('admin')) :
+        (currentUser && currentUser.grade === 'Administrateur');
+
     reports.forEach(report => {
-        const canDelete = currentUser.grade === 'Administrateur' || currentUser.id === report.authorId;
+        const canDelete = currentIsAdmin || currentUser.id === report.authorId;
         const reportHtml = `
             <div class="report-card">
                 <h3>
@@ -265,7 +274,9 @@ function loadStats() {
 
 // Admin Functions
 function loadAdmin() {
-    if (currentUser.grade !== 'Administrateur') {
+    // check permission using grades definitions
+    const currentGradeDef = (currentUser && typeof getGradeByName === 'function') ? getGradeByName(currentUser.grade) : null;
+    if (!(currentGradeDef && currentGradeDef.permissions && currentGradeDef.permissions.includes('admin'))) {
         alert('Accès refusé!');
         showPage('home');
         return;
@@ -275,7 +286,17 @@ function loadAdmin() {
     const usersList = document.getElementById('users-list');
     usersList.innerHTML = '';
     
+    // get available grades from grades.js
+    const allGrades = (typeof getAllGrades === 'function') ? getAllGrades() : [
+        { name: 'Recruté' }, { name: 'Agent' }, { name: 'Chef' }, { name: 'Administrateur' }
+    ];
+    
     users.forEach(user => {
+        const optionsHtml = allGrades.map(g => {
+            const selected = (user.grade === g.name) ? 'selected' : '';
+            return `<option value="${g.name}" ${selected}>${g.name}</option>`;
+        }).join('');
+
         const userHtml = `
             <div class="user-item">
                 <div class="user-item-info">
@@ -285,10 +306,7 @@ function loadAdmin() {
                 </div>
                 <div class="user-actions">
                     <select onchange="changeGrade(${user.id}, this.value)" style="padding: 5px; border-radius: 3px;">
-                        <option value="Recruté" ${user.grade === 'Recruté' ? 'selected' : ''}>Recruté</option>
-                        <option value="Agent" ${user.grade === 'Agent' ? 'selected' : ''}>Agent</option>
-                        <option value="Chef" ${user.grade === 'Chef' ? 'selected' : ''}>Chef</option>
-                        <option value="Administrateur" ${user.grade === 'Administrateur' ? 'selected' : ''}>Administrateur</option>
+                        ${optionsHtml}
                     </select>
                     <button onclick="editUserPassword(${user.id})" class="btn-success">Modifier MDP</button>
                     <button onclick="deleteUser(${user.id})" class="btn-danger">Supprimer</button>
@@ -426,7 +444,9 @@ function loadUserFromStorage() {
 
 // Admin export function - manual download only
 function exportDataAsAdmin() {
-    if (currentUser.grade !== 'Administrateur') {
+    // check using grade permissions
+    const currentGradeDef = (currentUser && typeof getGradeByName === 'function') ? getGradeByName(currentUser.grade) : null;
+    if (!(currentGradeDef && currentGradeDef.permissions && currentGradeDef.permissions.includes('admin'))) {
         alert('Accès refusé!');
         return;
     }
