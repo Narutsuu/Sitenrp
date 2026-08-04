@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Section Stratégique - Suna</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="auth-container" class="auth-container" style="display: none;">
+        <div class="auth-box">
+            <h1>Section Stratégique de Suna</h1>
+            <div class="auth-toggle">
+                <button class="auth-btn active" onclick="toggleAuth('login')">Connexion</button>
+                <button class="auth-btn" onclick="toggleAuth('register')">Inscription</button>
+            </div>
+            
+            <div id="login-form" class="auth-form active">
+                <input type="text" id="login-username" placeholder="Nom d'utilisateur" />
+                <input type="password" id="login-password" placeholder="Mot de passe" />
+                <button onclick="login()">Se connecter</button>
+                <div id="login-error" class="error-message"></div>
+            </div>
+            
+            <div id="register-form" class="auth-form">
+                <input type="text" id="register-username" placeholder="Nom d'utilisateur" />
+                <input type="password" id="register-password" placeholder="Mot de passe" />
+                <input type="password" id="register-password-confirm" placeholder="Confirmer le mot de passe" />
+                <button onclick="register()">S'inscrire</button>
+                <div id="register-error" class="error-message"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-container" style="display: none;">
+        <nav class="navbar">
+            <div class="navbar-brand">Section Stratégique de Suna</div>
+            <div class="navbar-menu">
+                <button onclick="showPage('home')" class="nav-btn">Accueil</button>
+                <button onclick="showPage('reports')" class="nav-btn">Rapports</button>
+                <button id="admin-btn" onclick="showPage('admin')" class="nav-btn" style="display: none;">Administration</button>
+                <button onclick="logout()" class="nav-btn logout-btn">Déconnexion</button>
+            </div>
+            <div class="user-info" id="user-info"></div>
+        </nav>
+
+        <main class="container">
+            <!-- Page Accueil -->
+            <div id="home-page" class="page active">
+                <div class="welcome-section">
+                    <h1>Bienvenue à la Section Stratégique de Suna</h1>
+                    <p>Gérez et consultez les rapports stratégiques de Suna</p>
+                    <div class="quick-stats">
+                        <div class="stat-card">
+                            <h3 id="total-reports">0</h3>
+                            <p>Rapports Total</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3 id="user-reports">0</h3>
+                            <p>Mes Rapports</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page Rapports -->
+            <div id="reports-page" class="page">
+                <div class="reports-header">
+                    <h1>Rapports Stratégiques</h1>
+                    <button onclick="showReportForm()" class="btn-primary">+ Nouveau Rapport</button>
+                </div>
+
+                <div id="report-form-container" class="report-form-container" style="display: none;">
+                    <div class="form-box">
+                        <h2>Créer un Nouveau Rapport</h2>
+                        <form onsubmit="submitReport(event)">
+                            <input type="text" id="report-name" placeholder="Nom" required />
+                            <input type="text" id="report-firstname" placeholder="Prénom" required />
+                            <input type="date" id="report-date" required />
+                            <textarea id="report-content" placeholder="Contenu du rapport" required></textarea>
+                            <div class="image-upload">
+                                <label>Ajouter une image (optionnel)</label>
+                                <input type="file" id="report-image" accept="image/*" />
+                            </div>
+                            <div class="form-buttons">
+                                <button type="submit" class="btn-primary">Soumettre</button>
+                                <button type="button" onclick="hideReportForm()" class="btn-secondary">Annuler</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div id="reports-list" class="reports-list"></div>
+            </div>
+
+            <!-- Page Administration -->
+            <div id="admin-page" class="page">
+                <h1>Panneau d'Administration</h1>
+                <div class="admin-sections">
+                    <div class="admin-section">
+                        <h2>Gestion des Utilisateurs</h2>
+                        <div id="users-list" class="users-list"></div>
+                    </div>
+                    <div class="admin-section">
+                        <h2>Gestion des Rapports</h2>
+                        <div id="admin-reports-list" class="admin-reports-list"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
