@@ -288,7 +288,7 @@ function loadAdmin() {
     
     // get available grades from grades.js
     const allGrades = (typeof getAllGrades === 'function') ? getAllGrades() : [
-        { name: 'Stratege en test' }, { name: 'Stratege' }, { name: 'Chef' }, { name: 'Administrateur' }
+        { name: 'Stratege en test' }, { name: 'Stratege' }, { name: 'Stratege confirmé' }, { name: 'Stratege en chef' }, { name: 'Co-gerant' }, { name: 'Gerant' }, { name: 'Dirigeant' }, { name: 'Administrateur' }
     ];
     
     users.forEach(user => {
