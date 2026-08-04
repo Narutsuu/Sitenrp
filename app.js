@@ -1,5 +1,4 @@
 // Configuration
-const API_URL = 'http://localhost:3000';
 let currentUser = null;
 
 // Initialize
@@ -22,7 +21,7 @@ function toggleAuth(type) {
     event.target.classList.add('active');
 }
 
-async function login() {
+function login() {
     const username = document.getElementById('login-username').value;
     const password = document.getElementById('login-password').value;
     const errorDiv = document.getElementById('login-error');
@@ -34,30 +33,21 @@ async function login() {
         return;
     }
     
-    try {
-        const response = await fetch(`${API_URL}/api/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok && data.success) {
-            currentUser = data.user;
-            saveUserToStorage();
-            showMainApp();
-            loadStats();
-        } else {
-            errorDiv.textContent = data.error || 'Identifiants incorrects';
-        }
-    } catch (error) {
-        console.error('Login error:', error);
-        errorDiv.textContent = 'Erreur de connexion. Vérifiez que le serveur est démarré.';
+    const users = loadUsers();
+    const user = users.find(u => u.username === username);
+    
+    if (!user || user.password !== password) {
+        errorDiv.textContent = 'Identifiants incorrects';
+        return;
     }
+    
+    currentUser = user;
+    saveUserToStorage();
+    showMainApp();
+    loadStats();
 }
 
-async function register() {
+function register() {
     const username = document.getElementById('register-username').value;
     const password = document.getElementById('register-password').value;
     const passwordConfirm = document.getElementById('register-password-confirm').value;
@@ -75,33 +65,33 @@ async function register() {
         return;
     }
     
-    try {
-        const response = await fetch(`${API_URL}/api/auth/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok && data.success) {
-            errorDiv.style.color = '#51cf66';
-            errorDiv.textContent = 'Inscription réussie! Connectez-vous.';
-            
-            setTimeout(() => {
-                toggleAuth('login');
-                document.getElementById('register-username').value = '';
-                document.getElementById('register-password').value = '';
-                document.getElementById('register-password-confirm').value = '';
-                errorDiv.style.color = '#ff6b6b';
-            }, 2000);
-        } else {
-            errorDiv.textContent = data.error || 'Erreur lors de l\'inscription';
-        }
-    } catch (error) {
-        console.error('Register error:', error);
-        errorDiv.textContent = 'Erreur de connexion. Vérifiez que le serveur est démarré.';
+    const users = loadUsers();
+    if (users.find(u => u.username === username)) {
+        errorDiv.textContent = 'Cet utilisateur existe déjà';
+        return;
     }
+    
+    const newUser = {
+        id: Date.now(),
+        username,
+        password,
+        grade: 'Recruté',
+        createdAt: new Date().toISOString()
+    };
+    
+    users.push(newUser);
+    saveUsers(users);
+    
+    errorDiv.style.color = '#51cf66';
+    errorDiv.textContent = 'Inscription réussie! Connectez-vous.';
+    
+    setTimeout(() => {
+        toggleAuth('login');
+        document.getElementById('register-username').value = '';
+        document.getElementById('register-password').value = '';
+        document.getElementById('register-password-confirm').value = '';
+        errorDiv.style.color = '#ff6b6b';
+    }, 2000);
 }
 
 function logout() {
@@ -165,7 +155,7 @@ function hideReportForm() {
     document.getElementById('report-form-container').querySelector('form').reset();
 }
 
-async function submitReport(event) {
+function submitReport(event) {
     event.preventDefault();
     
     const name = document.getElementById('report-name').value;
@@ -174,246 +164,247 @@ async function submitReport(event) {
     const content = document.getElementById('report-content').value;
     const imageFile = document.getElementById('report-image').files[0];
     
-    let image = null;
-    if (imageFile) {
-        image = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.readAsDataURL(imageFile);
-        });
-    }
+    const report = {
+        id: Date.now(),
+        authorId: currentUser.id,
+        authorName: currentUser.username,
+        name,
+        firstname,
+        date,
+        content,
+        image: null,
+        createdAt: new Date().toISOString()
+    };
     
-    try {
-        const response = await fetch(`${API_URL}/api/reports`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                authorId: currentUser.id,
-                authorName: currentUser.username,
-                name,
-                firstname,
-                date,
-                content,
-                image
-            })
-        });
-        
-        if (response.ok) {
+    if (imageFile) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            report.image = e.target.result;
+            saveReport(report);
             loadReports();
             hideReportForm();
             alert('Rapport créé avec succès!');
             loadStats();
-        }
-    } catch (error) {
-        console.error('Submit report error:', error);
-        alert('Erreur lors de la création du rapport');
+        };
+        reader.readAsDataURL(imageFile);
+    } else {
+        saveReport(report);
+        loadReports();
+        hideReportForm();
+        alert('Rapport créé avec succès!');
+        loadStats();
     }
 }
 
-async function loadReports() {
-    try {
-        const response = await fetch(`${API_URL}/api/reports`);
-        const reports = await response.json();
-        
-        const reportsList = document.getElementById('reports-list');
-        reportsList.innerHTML = '';
-        
-        reports.forEach(report => {
-            const canDelete = currentUser.grade === 'Administrateur' || currentUser.id === report.authorId;
-            const reportHtml = `
-                <div class="report-card">
-                    <h3>
-                        ${report.name} ${report.firstname}
-                        ${report.authorId === currentUser.id ? '<span style="font-size: 12px; color: var(--primary-color);">✓ Votre rapport</span>' : ''}
-                    </h3>
-                    <div class="report-date">${new Date(report.date).toLocaleDateString('fr-FR')}</div>
-                    <div class="report-author">Par: ${report.authorName}</div>
-                    ${report.image ? `<img src="${report.image}" class="report-image" alt="Rapport image">` : ''}
-                    <div class="report-content">${report.content.substring(0, 150)}...</div>
-                    <div class="report-actions">
-                        <button onclick="viewReport(${report.id})" class="btn-primary">Voir</button>
-                        ${canDelete ? `<button onclick="deleteReport(${report.id})" class="btn-danger">Supprimer</button>` : ''}
-                    </div>
+function loadReports() {
+    const reports = loadAllReports();
+    const reportsList = document.getElementById('reports-list');
+    reportsList.innerHTML = '';
+    
+    reports.forEach(report => {
+        const canDelete = currentUser.grade === 'Administrateur' || currentUser.id === report.authorId;
+        const reportHtml = `
+            <div class="report-card">
+                <h3>
+                    ${report.name} ${report.firstname}
+                    ${report.authorId === currentUser.id ? '<span style="font-size: 12px; color: var(--primary-color);">✓ Votre rapport</span>' : ''}
+                </h3>
+                <div class="report-date">${new Date(report.date).toLocaleDateString('fr-FR')}</div>
+                <div class="report-author">Par: ${report.authorName}</div>
+                ${report.image ? `<img src="${report.image}" class="report-image" alt="Rapport image">` : ''}
+                <div class="report-content">${report.content.substring(0, 150)}...</div>
+                <div class="report-actions">
+                    <button onclick="viewReport(${report.id})" class="btn-primary">Voir</button>
+                    ${canDelete ? `<button onclick="deleteReport(${report.id})" class="btn-danger">Supprimer</button>` : ''}
                 </div>
-            `;
-            reportsList.innerHTML += reportHtml;
-        });
-    } catch (error) {
-        console.error('Load reports error:', error);
-        alert('Erreur de connexion au serveur');
-    }
+            </div>
+        `;
+        reportsList.innerHTML += reportHtml;
+    });
 }
 
 function viewReport(reportId) {
-    fetch(`${API_URL}/api/reports`)
-        .then(res => res.json())
-        .then(reports => {
-            const report = reports.find(r => r.id === reportId);
-            
-            if (report) {
-                const modal = `
-                    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 1000;" onclick="this.remove()">
-                        <div style="background: var(--secondary-color); border: 2px solid var(--primary-color); border-radius: 10px; padding: 30px; max-width: 600px; max-height: 90vh; overflow: auto; color: var(--text-light);" onclick="event.stopPropagation()">
-                            <h2 style="color: var(--primary-color); margin-bottom: 15px;">${report.name} ${report.firstname}</h2>
-                            <p style="color: #ccc; margin-bottom: 10px;"><strong>Date:</strong> ${new Date(report.date).toLocaleDateString('fr-FR')}</p>
-                            <p style="color: #ccc; margin-bottom: 15px;"><strong>Auteur:</strong> ${report.authorName}</p>
-                            ${report.image ? `<img src="${report.image}" style="width: 100%; border-radius: 5px; margin-bottom: 20px; border: 1px solid var(--primary-color);">` : ''}
-                            <div style="line-height: 1.8; color: #ddd; margin-bottom: 20px;">${report.content.replace(/\n/g, '<br>')}</div>
-                            <button onclick="this.closest('div').parentElement.remove()" class="btn-primary" style="width: 100%;">Fermer</button>
-                        </div>
-                    </div>
-                `;
-                document.body.insertAdjacentHTML('beforeend', modal);
-            }
-        })
-        .catch(error => console.error('View report error:', error));
+    const reports = loadAllReports();
+    const report = reports.find(r => r.id === reportId);
+    
+    if (report) {
+        const modal = `
+            <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 1000;" onclick="this.remove()">
+                <div style="background: var(--secondary-color); border: 2px solid var(--primary-color); border-radius: 10px; padding: 30px; max-width: 600px; max-height: 90vh; overflow: auto; color: var(--text-light);" onclick="event.stopPropagation()">
+                    <h2 style="color: var(--primary-color); margin-bottom: 15px;">${report.name} ${report.firstname}</h2>
+                    <p style="color: #ccc; margin-bottom: 10px;"><strong>Date:</strong> ${new Date(report.date).toLocaleDateString('fr-FR')}</p>
+                    <p style="color: #ccc; margin-bottom: 15px;"><strong>Auteur:</strong> ${report.authorName}</p>
+                    ${report.image ? `<img src="${report.image}" style="width: 100%; border-radius: 5px; margin-bottom: 20px; border: 1px solid var(--primary-color);">` : ''}
+                    <div style="line-height: 1.8; color: #ddd; margin-bottom: 20px;">${report.content.replace(/\n/g, '<br>')}</div>
+                    <button onclick="this.closest('div').parentElement.remove()" class="btn-primary" style="width: 100%;">Fermer</button>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modal);
+    }
 }
 
-async function deleteReport(reportId) {
+function deleteReport(reportId) {
     if (confirm('Êtes-vous sûr de vouloir supprimer ce rapport?')) {
-        try {
-            const response = await fetch(`${API_URL}/api/reports/${reportId}`, {
-                method: 'DELETE'
-            });
-            
-            if (response.ok) {
-                loadReports();
-                alert('Rapport supprimé!');
-                loadStats();
-            }
-        } catch (error) {
-            console.error('Delete report error:', error);
-            alert('Erreur lors de la suppression');
-        }
+        const reports = loadAllReports();
+        const filtered = reports.filter(r => r.id !== reportId);
+        saveAllReports(filtered);
+        loadReports();
+        alert('Rapport supprimé!');
+        loadStats();
     }
 }
 
 // Stats Functions
-async function loadStats() {
-    try {
-        const response = await fetch(`${API_URL}/api/reports`);
-        const reports = await response.json();
-        const userReports = reports.filter(r => r.authorId === currentUser.id);
-        
-        document.getElementById('total-reports').textContent = reports.length;
-        document.getElementById('user-reports').textContent = userReports.length;
-    } catch (error) {
-        console.error('Load stats error:', error);
-    }
+function loadStats() {
+    const reports = loadAllReports();
+    const userReports = reports.filter(r => r.authorId === currentUser.id);
+    
+    document.getElementById('total-reports').textContent = reports.length;
+    document.getElementById('user-reports').textContent = userReports.length;
 }
 
 // Admin Functions
-async function loadAdmin() {
+function loadAdmin() {
     if (currentUser.grade !== 'Administrateur') {
         alert('Accès refusé!');
         showPage('home');
         return;
     }
     
-    try {
-        const usersResponse = await fetch(`${API_URL}/api/users`);
-        const users = await usersResponse.json();
-        
-        const usersList = document.getElementById('users-list');
-        usersList.innerHTML = '';
-        
-        users.forEach(user => {
-            const userHtml = `
-                <div class="user-item">
-                    <div class="user-item-info">
-                        <div class="user-name">${user.username}</div>
-                        <div class="user-grade">Grade: ${user.grade}</div>
-                    </div>
-                    <div class="user-actions">
-                        <select onchange="changeGrade(${user.id}, this.value)" style="padding: 5px; border-radius: 3px;">
-                            <option value="Recruté" ${user.grade === 'Recruté' ? 'selected' : ''}>Recruté</option>
-                            <option value="Agent" ${user.grade === 'Agent' ? 'selected' : ''}>Agent</option>
-                            <option value="Chef" ${user.grade === 'Chef' ? 'selected' : ''}>Chef</option>
-                            <option value="Administrateur" ${user.grade === 'Administrateur' ? 'selected' : ''}>Administrateur</option>
-                        </select>
-                        <button onclick="deleteUser(${user.id})" class="btn-danger">Supprimer</button>
-                    </div>
+    const users = loadUsers();
+    const usersList = document.getElementById('users-list');
+    usersList.innerHTML = '';
+    
+    users.forEach(user => {
+        const userHtml = `
+            <div class="user-item">
+                <div class="user-item-info">
+                    <div class="user-name">${user.username}</div>
+                    <div class="user-grade">Grade: ${user.grade}</div>
+                    <div class="user-password">Mot de passe: <strong>${user.password}</strong></div>
                 </div>
-            `;
-            usersList.innerHTML += userHtml;
-        });
-        
-        const reportsResponse = await fetch(`${API_URL}/api/reports`);
-        const reports = await reportsResponse.json();
-        const adminReportsList = document.getElementById('admin-reports-list');
-        adminReportsList.innerHTML = '';
-        
-        reports.forEach(report => {
-            const reportHtml = `
-                <div class="admin-report-item">
-                    <div class="admin-report-item-info">
-                        <div class="user-name">${report.name} ${report.firstname}</div>
-                        <div class="user-grade">Auteur: ${report.authorName} | ${new Date(report.date).toLocaleDateString('fr-FR')}</div>
-                    </div>
-                    <div class="admin-report-item-actions">
-                        <button onclick="viewReport(${report.id})" class="btn-success">Voir</button>
-                        <button onclick="deleteReport(${report.id})" class="btn-danger">Supprimer</button>
-                    </div>
+                <div class="user-actions">
+                    <select onchange="changeGrade(${user.id}, this.value)" style="padding: 5px; border-radius: 3px;">
+                        <option value="Recruté" ${user.grade === 'Recruté' ? 'selected' : ''}>Recruté</option>
+                        <option value="Agent" ${user.grade === 'Agent' ? 'selected' : ''}>Agent</option>
+                        <option value="Chef" ${user.grade === 'Chef' ? 'selected' : ''}>Chef</option>
+                        <option value="Administrateur" ${user.grade === 'Administrateur' ? 'selected' : ''}>Administrateur</option>
+                    </select>
+                    <button onclick="editUserPassword(${user.id})" class="btn-success">Modifier MDP</button>
+                    <button onclick="deleteUser(${user.id})" class="btn-danger">Supprimer</button>
                 </div>
-            `;
-            adminReportsList.innerHTML += reportHtml;
-        });
-    } catch (error) {
-        console.error('Load admin error:', error);
-        alert('Erreur lors du chargement du panneau admin');
+            </div>
+        `;
+        usersList.innerHTML += userHtml;
+    });
+    
+    const reports = loadAllReports();
+    const adminReportsList = document.getElementById('admin-reports-list');
+    adminReportsList.innerHTML = '';
+    
+    reports.forEach(report => {
+        const reportHtml = `
+            <div class="admin-report-item">
+                <div class="admin-report-item-info">
+                    <div class="user-name">${report.name} ${report.firstname}</div>
+                    <div class="user-grade">Auteur: ${report.authorName} | ${new Date(report.date).toLocaleDateString('fr-FR')}</div>
+                </div>
+                <div class="admin-report-item-actions">
+                    <button onclick="viewReport(${report.id})" class="btn-success">Voir</button>
+                    <button onclick="deleteReport(${report.id})" class="btn-danger">Supprimer</button>
+                </div>
+            </div>
+        `;
+        adminReportsList.innerHTML += reportHtml;
+    });
+}
+
+function editUserPassword(userId) {
+    const users = loadUsers();
+    const user = users.find(u => u.id === userId);
+    
+    if (!user) return;
+    
+    const newPassword = prompt(`Nouveau mot de passe pour ${user.username}:`, user.password);
+    
+    if (newPassword !== null && newPassword.trim() !== '') {
+        user.password = newPassword;
+        saveUsers(users);
+        alert('Mot de passe modifié avec succès!');
+        loadAdmin();
     }
 }
 
-async function changeGrade(userId, newGrade) {
-    try {
-        const response = await fetch(`${API_URL}/api/users/${userId}/grade`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ grade: newGrade })
-        });
+function changeGrade(userId, newGrade) {
+    const users = loadUsers();
+    const user = users.find(u => u.id === userId);
+    if (user) {
+        user.grade = newGrade;
+        saveUsers(users);
         
-        if (response.ok) {
-            const data = await response.json();
-            
-            if (data.user.id === currentUser.id) {
-                currentUser.grade = newGrade;
-                saveUserToStorage();
-                updateUserInfo();
-            }
-            
-            alert(`Grade de ${data.user.username} changé en ${newGrade}!`);
-            loadAdmin();
+        if (user.id === currentUser.id) {
+            currentUser.grade = newGrade;
+            saveUserToStorage();
+            updateUserInfo();
         }
-    } catch (error) {
-        console.error('Change grade error:', error);
-        alert('Erreur lors de la modification du grade');
+        
+        alert(`Grade de ${user.username} changé en ${newGrade}!`);
+        loadAdmin();
     }
 }
 
-async function deleteUser(userId) {
+function deleteUser(userId) {
     if (userId === currentUser.id) {
         alert('Vous ne pouvez pas supprimer votre propre compte!');
         return;
     }
     
     if (confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur?')) {
-        try {
-            const response = await fetch(`${API_URL}/api/users/${userId}`, {
-                method: 'DELETE'
-            });
-            
-            if (response.ok) {
-                alert('Utilisateur supprimé!');
-                loadAdmin();
-            }
-        } catch (error) {
-            console.error('Delete user error:', error);
-            alert('Erreur lors de la suppression de l\'utilisateur');
-        }
+        const users = loadUsers();
+        const filtered = users.filter(u => u.id !== userId);
+        saveUsers(filtered);
+        alert('Utilisateur supprimé!');
+        loadAdmin();
     }
 }
 
 // Storage Functions
+function loadUsers() {
+    const stored = localStorage.getItem('sitenrp_users');
+    if (!stored) {
+        const defaultAdmin = {
+            id: 1,
+            username: 'admin',
+            password: 'admin123',
+            grade: 'Administrateur',
+            createdAt: new Date().toISOString()
+        };
+        saveUsers([defaultAdmin]);
+        return [defaultAdmin];
+    }
+    return JSON.parse(stored);
+}
+
+function saveUsers(users) {
+    localStorage.setItem('sitenrp_users', JSON.stringify(users));
+}
+
+function loadAllReports() {
+    const stored = localStorage.getItem('sitenrp_reports');
+    return stored ? JSON.parse(stored) : [];
+}
+
+function saveReport(report) {
+    const reports = loadAllReports();
+    reports.push(report);
+    saveAllReports(reports);
+}
+
+function saveAllReports(reports) {
+    localStorage.setItem('sitenrp_reports', JSON.stringify(reports));
+}
+
 function saveUserToStorage() {
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
 }
@@ -422,5 +413,11 @@ function loadUserFromStorage() {
     const stored = localStorage.getItem('currentUser');
     if (stored) {
         currentUser = JSON.parse(stored);
+        // Verify user still exists
+        const users = loadUsers();
+        if (!users.find(u => u.id === currentUser.id)) {
+            localStorage.removeItem('currentUser');
+            currentUser = null;
+        }
     }
 }
