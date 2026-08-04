@@ -72,7 +72,7 @@ function register() {
     }
     
     // Default grade taken from grades.js if available
-    const defaultGrade = (typeof getAllGrades === 'function' && getAllGrades().length) ? getAllGrades()[0].name : 'Recruté';
+    const defaultGrade = (typeof getAllGrades === 'function' && getAllGrades().length) ? getAllGrades()[0].name : 'Stratege en test';
 
     const newUser = {
         id: Date.now(),
@@ -288,7 +288,7 @@ function loadAdmin() {
     
     // get available grades from grades.js
     const allGrades = (typeof getAllGrades === 'function') ? getAllGrades() : [
-        { name: 'Recruté' }, { name: 'Agent' }, { name: 'Chef' }, { name: 'Administrateur' }
+        { name: 'Stratege en test' }, { name: 'Stratege' }, { name: 'Chef' }, { name: 'Administrateur' }
     ];
     
     users.forEach(user => {
