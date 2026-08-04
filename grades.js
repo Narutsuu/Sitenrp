@@ -1,7 +1,7 @@
 // Gestion des Grades
 let grades = JSON.parse(localStorage.getItem('grades')) || [
-    { id: 1, name: 'Genin', rank: 1, permissions: ['read', 'write_report'] },
-    { id: 2, name: 'Chunin', rank: 2, permissions: ['read', 'write_report', 'moderate'] },
+    { id: 1, name: 'Stratege en test', rank: 1, permissions: ['read', 'write_report'] },
+    { id: 2, name: 'Stratege', rank: 2, permissions: ['read', 'write_report', 'moderate'] },
     { id: 3, name: 'Jonin', rank: 3, permissions: ['read', 'write_report', 'moderate', 'manage_users'] },
     { id: 4, name: 'Kage', rank: 4, permissions: ['read', 'write_report', 'moderate', 'manage_users', 'admin'] },
     // Administrateur: accès complet et toutes les permissions
