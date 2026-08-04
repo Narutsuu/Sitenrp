@@ -228,8 +228,8 @@ function viewReport(reportId) {
     
     if (report) {
         const modal = `
-            <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 1000;" onclick="this.remove()">
-                <div style="background: var(--secondary-color); border: 2px solid var(--primary-color); border-radius: 10px; padding: 30px; max-width: 600px; max-height: 90vh; overflow: auto; color: var(--text-light);" onclick="event.stopPropagation()">
+            <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 1000;" onclick="t[...]
+                <div style="background: var(--secondary-color); border: 2px solid var(--primary-color); border-radius: 10px; padding: 30px; max-width: 600px; max-height: 90vh; overflow: auto; col[...]
                     <h2 style="color: var(--primary-color); margin-bottom: 15px;">${report.name} ${report.firstname}</h2>
                     <p style="color: #ccc; margin-bottom: 10px;"><strong>Date:</strong> ${new Date(report.date).toLocaleDateString('fr-FR')}</p>
                     <p style="color: #ccc; margin-bottom: 15px;"><strong>Auteur:</strong> ${report.authorName}</p>
@@ -335,13 +335,15 @@ function editUserPassword(userId) {
 }
 
 function changeGrade(userId, newGrade) {
+    // Coerce userId to number to avoid string/number mismatch when coming from DOM
+    userId = Number(userId);
     const users = loadUsers();
     const user = users.find(u => u.id === userId);
     if (user) {
         user.grade = newGrade;
         saveUsers(users);
         
-        if (user.id === currentUser.id) {
+        if (currentUser && user.id === currentUser.id) {
             currentUser.grade = newGrade;
             saveUserToStorage();
             updateUserInfo();
@@ -349,6 +351,9 @@ function changeGrade(userId, newGrade) {
         
         alert(`Grade de ${user.username} changé en ${newGrade}!`);
         loadAdmin();
+    } else {
+        console.error('Utilisateur introuvable pour id:', userId);
+        alert("Erreur: utilisateur introuvable (voir console).");
     }
 }
 
